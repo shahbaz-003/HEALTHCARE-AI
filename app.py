@@ -2,6 +2,15 @@ import streamlit as st
 from pymongo import MongoClient
 import pandas as pd
 from groq import Groq
+# ---------------- SECRETS ----------------
+MONGO_URL = st.secrets["MONGO_URL"]
+GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+
+# ---------------- DATABASE ----------------
+client = MongoClient(MONGO_URL)
+
+# ---------------- AI ----------------
+client_ai = Groq(api_key=GROQ_API_KEY)
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Healthcare AI", page_icon="🧬", layout="wide")
@@ -35,7 +44,7 @@ if "chat_sessions" not in st.session_state:
     st.session_state.chat_sessions = {"Chat 1": []}
 
 # ---------------- DATABASE ----------------
-client = MongoClient("mongourl")
+MongoClient(st.secrets["MONGO_URL"])
 db = client["healthcare_db"]
 
 chat_history = db["chat_history"]
