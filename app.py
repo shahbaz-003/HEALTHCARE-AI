@@ -1,19 +1,38 @@
+%%writefile app.py
 import streamlit as st
 from pymongo import MongoClient
 import pandas as pd
 from groq import Groq
+
+# ---------------- PAGE CONFIG ----------------
+st.set_page_config(page_title="Healthcare AI", page_icon="🧬", layout="wide")
+
 # ---------------- SECRETS ----------------
 MONGO_URL = st.secrets["MONGO_URL"]
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 
 # ---------------- DATABASE ----------------
 client = MongoClient(MONGO_URL)
+db = client["healthcare_db"]
+
+chat_history = db["chat_history"]
+fitness = db["fitness"]
+reminders = db["reminders"]
+goals = db["goals"]
+medical_history = db["medical_history"]
 
 # ---------------- AI ----------------
 client_ai = Groq(api_key=GROQ_API_KEY)
 
-# ---------------- PAGE CONFIG ----------------
-st.set_page_config(page_title="Healthcare AI", page_icon="🧬", layout="wide")
+def ai_chatbot(text):
+    response = client_ai.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {"role": "system", "content": "You are a healthcare assistant."},
+            {"role": "user", "content": text}
+        ]
+    )
+    return response.choices[0].message.content
 
 # ---------------- UI DESIGN ----------------
 st.markdown("""
@@ -43,29 +62,6 @@ if "current_chat" not in st.session_state:
 if "chat_sessions" not in st.session_state:
     st.session_state.chat_sessions = {"Chat 1": []}
 
-# ---------------- DATABASE ----------------
-MongoClient(st.secrets["MONGO_URL"])
-db = client["healthcare_db"]
-
-chat_history = db["chat_history"]
-fitness = db["fitness"]
-reminders = db["reminders"]
-goals = db["goals"]
-medical_history = db["medical_history"]
-
-# ---------------- AI ----------------
-client_ai = Groq(api_key="groqkey")
-
-def ai_chatbot(text):
-    response = client_ai.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[
-            {"role": "system", "content": "You are a healthcare assistant."},
-            {"role": "user", "content": text}
-        ]
-    )
-    return response.choices[0].message.content
-
 # ---------------- DATA ----------------
 ayurvedic_data = {
     "cold": ["Tulsi", "Ginger Tea"],
@@ -87,7 +83,6 @@ doctor_data = {
 # ---------------- SIDEBAR ----------------
 st.sidebar.title("💬 Chats")
 
-# ➕ New Chat
 if st.sidebar.button("➕ New Chat"):
     new_id = f"Chat {len(st.session_state.chat_sessions)+1}"
     st.session_state.chat_sessions[new_id] = []
@@ -96,7 +91,6 @@ if st.sidebar.button("➕ New Chat"):
 
 st.sidebar.markdown("### Your Chats")
 
-# FIXED CHAT SWITCHING
 for i, chat in enumerate(st.session_state.chat_sessions):
     if st.sidebar.button(chat, key=f"chat_{i}"):
         st.session_state.current_chat = chat
